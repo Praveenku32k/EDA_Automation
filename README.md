@@ -106,4 +106,65 @@ JOIN year_filter ON admissions.subject_id = year_filter.subject_id
 WHERE EXTRACT(YEAR FROM procedures_icd.chartdate) = year_filter.anchor_year;
 
 
+1. caregiver Table
+SELECT DISTINCT caregiver.*
+FROM mimic_iv_subset.caregiver
+JOIN mimic_iv_subset.chartevents ON caregiver.caregiver_id = chartevents.caregiver_id;
+
+2. d_items Table:
+SELECT DISTINCT d_items.*
+FROM mimic_iv_subset.d_items
+JOIN mimic_iv_subset.chartevents ON d_items.itemid = chartevents.itemid;
+
+3. chartevents Table
+WITH year_filter AS (
+    SELECT subject_id, anchor_year
+    FROM mimic_iv_subset.patients
+    WHERE anchor_year_group = '2011 - 2013'
+)
+
+SELECT * 
+FROM mimic_iv_subset.chartevents
+JOIN year_filter ON chartevents.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM chartevents.charttime) = year_filter.anchor_year;
+
+4. datetimeevents Table
+SELECT * 
+FROM mimic_iv_subset.datetimeevents
+JOIN year_filter ON datetimeevents.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM datetimeevents.charttime) = year_filter.anchor_year;
+
+5. icustays Table
+
+SELECT * 
+FROM mimic_iv_subset.icustays
+JOIN year_filter ON icustays.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM icustays.intime) = year_filter.anchor_year;
+
+6. ingredientevents Table
+SELECT * 
+FROM mimic_iv_subset.ingredientevents
+JOIN year_filter ON ingredientevents.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM ingredientevents.starttime) = year_filter.anchor_year;
+
+7. inputevents Table
+SELECT * 
+FROM mimic_iv_subset.inputevents
+JOIN year_filter ON inputevents.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM inputevents.starttime) = year_filter.anchor_year;
+
+8. outputevents Table
+SELECT * 
+FROM mimic_iv_subset.outputevents
+JOIN year_filter ON outputevents.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM outputevents.charttime) = year_filter.anchor_year;
+
+9. procedureevents Table
+SELECT * 
+FROM mimic_iv_subset.procedureevents
+JOIN year_filter ON procedureevents.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM procedureevents.starttime) = year_filter.anchor_year;
+
+
+
 ```
