@@ -75,4 +75,35 @@ WHERE EXTRACT(YEAR FROM services.transfertime) = year_filter.anchor_year;
 SELECT * FROM mimic_iv_subset.transfers
 JOIN year_filter ON transfers.subject_id = year_filter.subject_id
 WHERE EXTRACT(YEAR FROM transfers.intime) = year_filter.anchor_year;
+
+-- 14 d_icd_diagnoses table:
+WITH year_filter AS (
+    SELECT subject_id, anchor_year
+    FROM mimic_iv_subset.patients
+    WHERE anchor_year_group = '2011 - 2013'
+)
+
+SELECT DISTINCT d_icd_diagnoses.*
+FROM mimic_iv_subset.d_icd_diagnoses
+JOIN mimic_iv_subset.diagnoses_icd ON d_icd_diagnoses.icd_code = diagnoses_icd.icd_code
+JOIN mimic_iv_subset.admissions ON diagnoses_icd.hadm_id = admissions.hadm_id
+JOIN year_filter ON admissions.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM admissions.admittime) = year_filter.anchor_year;
+
+--15.d_icd_procedures
+
+WITH year_filter AS (
+    SELECT subject_id, anchor_year
+    FROM mimic_iv_subset.patients
+    WHERE anchor_year_group = '2011 - 2013'
+)
+
+SELECT DISTINCT d_icd_procedures.*
+FROM mimic_iv_subset.d_icd_procedures
+JOIN mimic_iv_subset.procedures_icd ON d_icd_procedures.icd_code = procedures_icd.icd_code
+JOIN mimic_iv_subset.admissions ON procedures_icd.hadm_id = admissions.hadm_id
+JOIN year_filter ON admissions.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM procedures_icd.chartdate) = year_filter.anchor_year;
+
+
 ```
