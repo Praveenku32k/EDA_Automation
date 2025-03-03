@@ -168,3 +168,112 @@ WHERE EXTRACT(YEAR FROM procedureevents.starttime) = year_filter.anchor_year;
 
 
 ```
+
+
+```
+omr table:
+subject_id,chartdate,seq_num,result_name,result_value
+
+provider table:
+provider_id
+
+admissions table
+subject_id, hadm_id, admittime, dischtime, deathtime,admission_type,admit_provider_id,admission_location, discharge_location,insurance, language, marital_status, ethnicity,edregtime, edouttime,hospital_expire_flag
+
+
+d_hcpcs table:
+code,category,long_description, short_description
+
+d_icd_diagnoses table:
+icd_code, icd_version,long_title
+
+d_icd_procedures table:
+icd_code, icd_version,long_title
+
+d_labitems table:
+itemid,label,fluid,category
+
+diagnoses_icd table:
+subject_id,hadm_id,seq_num,icd_code, icd_version
+
+drgcodes table:
+subject_id,hadm_id,drg_type,drg_code,description,drg_severity, drg_mortality
+
+emar table:
+subject_id,hadm_id,emar_id, emar_seq,poe_id,pharmacy_id,enter_provider_id,charttime,medication,event_txt,scheduletime,storetime
+
+emar_detail table:
+subject_id,emar_id, emar_seq,parent_field_ordinal,administration_type,pharmacy_id
+
+hpcsevents table:
+subject_id,hadm_id,chartdate,hcpcs_cd,seq_num,short_description
+
+
+labevents tables:
+labevent_id,subject_id,hadm_id,specimen_id,itemid,order_provider_id,charttime,storetime,value, valuenum,valueuom,ref_range_lower, ref_range_upper,flag
+priority,comments
+
+microbiologyevents table:
+microevent_id,subject_id,hadm_id,micro_specimen_id,order_provider_id,chartdate, charttime,spec_itemid, spec_type_desc,test_seq,storedate, storetime
+test_itemid, test_name,org_itemid, org_name,isolate_num,ab_itemid, ab_name,dilution_text, dilution_comparison, dilution_value,interpretation,comments
+
+
+patients table:
+subject_id,gender,anchor_age, anchor_year, anchor_year_group,dod
+
+pharmacy table:
+subject_id,hadm_id,pharmacy_id,poe_id,starttime, stoptime,medication,proc_type
+
+poe table:
+poe_id,poe_seq,subject_id,hadm_id,ordertime,order_type,order_subtype
+
+poe_detail table:
+poe_id,poe_seq,subject_id,field_name,field_value
+
+
+prescriptions table:
+subject_id,hadm_id,pharmacy_id,poe_id, poe_seq,order_provider_id,starttime, stoptime,drug_type
+
+procedures_icd table:
+subject_id,hadm_id,seq_num,chartdate,icd_code, icd_version
+
+services tables:
+subject_id,hadm_id,transfertime,prev_service, curr_service
+
+transfers table
+subject_id, hadm_id, transfer_id,eventtype,careunit,intime, outtime
+
+
+caregiver table:
+caregiver_id
+
+d_items table:
+itemid,label, abbreviation,linksto,category,unitname,param_type,lownormalvalue, highnormalvalue
+
+chartevents table:
+subject_id, hadm_id, stay_id,caregiver_id,charttime, storetime,itemid,value, valuenum,valueuom,warning
+
+datetimeevents table:
+subject_id, hadm_id, stay_id,caregiver_id,charttime, storetime,itemid,value,valueuom,warning
+
+ICU stays:
+subject_id, hadm_id, stay_id,FIRST_CAREUNIT, LAST_CAREUNIT,INTIME, OUTTIME,LOS
+
+Ingredientevents table:
+
+subject_id, hadm_id, stay_id,caregiver_id,starttime, endtime,storetime,itemid,amount, amountuom,rate, rateuom,orderid, linkorderid,statusdescription
+originalamount,originalrate
+
+Inputevents table:
+subject_id, hadm_id, stay_id,caregiver_id,starttime, endtime,storetime,itemid,amount, amountuom,rate, rateuom,orderid, linkorderid,ordercategoryname, secondaryordercategoryname, ordercomponenttypedescription, ordercategorydescription,patientweight,totalamount, totalamountuom
+isopenbag,continueinnextdept,statusdescription,originalamount,originalrate
+
+outputevents table:
+subject_id, hadm_id, stay_id,caregiver_id,charttime,storetime,itemid,value, valueuom
+
+procedureevents table:
+subject_id, hadm_id, stay_id,caregiver_id,starttime, endtime,storetime,itemid,value,valueuom,location , locationcategory
+orderid, linkorderid,ordercategoryname, ordercategorydescription,patientweight,isopenbag,continueinnextdept,statusdescription,originalamount, originalrate
+
+
+```
