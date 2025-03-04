@@ -280,6 +280,7 @@ orderid, linkorderid,ordercategoryname, ordercategorydescription,patientweight,i
 
 ```
 import psycopg2
+import psycopg2.errors
 
 # Database connection parameters
 SOURCE_DB = {
@@ -322,54 +323,116 @@ TABLES = {
     "procedureevents": "starttime"
 }
 
-# SQL template for filtering and inserting data
 SQL_TEMPLATE = """
 WITH year_filter AS (
     SELECT subject_id, anchor_year
     FROM mimic_iv_subset.patients
     WHERE anchor_year_group = '2011 - 2013'
 )
-CREATE TEMP TABLE temp_filtered_data AS
 SELECT {table_name}.*
 FROM mimic_iv_subset.{table_name}
 JOIN year_filter ON {table_name}.subject_id = year_filter.subject_id
 WHERE EXTRACT(YEAR FROM {table_name}.{date_column}) = year_filter.anchor_year;
-
-CREATE TABLE IF NOT EXISTS mimic_iv_filtered.{table_name} (LIKE mimic_iv_subset.{table_name} INCLUDING ALL);
-
-INSERT INTO mimic_iv_filtered.{table_name}
-SELECT * FROM temp_filtered_data;
-
-DROP TABLE temp_filtered_data;
 """
 
-def execute_query(query, conn):
-    """Executes a given SQL query."""
+def create_database():
+    """Creates the target database if it doesn't exist."""
     try:
-        with conn.cursor() as cursor:
-            cursor.execute(query)
-        conn.commit()
-        print(f"✅ Successfully processed table: {query.split()[8]}")
+        conn = psycopg2.connect(
+            dbname="postgres",  # Connect to default 'postgres' database first
+            user=TARGET_DB["user"],
+            password=TARGET_DB["password"],
+            host=TARGET_DB["host"],
+            port=TARGET_DB["port"]
+        )
+        conn.autocommit = True
+        cursor = conn.cursor()
+
+        cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{TARGET_DB['dbname']}'")
+        exists = cursor.fetchone()
+
+        if not exists:
+            cursor.execute(f"CREATE DATABASE {TARGET_DB['dbname']}")
+            print(f"✅ Database '{TARGET_DB['dbname']}' created!")
+
+        cursor.close()
+        conn.close()
+    
     except Exception as e:
-        print(f"❌ Error processing table: {query.split()[8]} - {e}")
-        conn.rollback()
+        print(f"❌ Error creating database: {e}")
+
+def create_table_if_not_exists(table_name, src_conn, tgt_conn):
+    """Creates a table in the target database if it doesn’t exist."""
+    try:
+        src_cursor = src_conn.cursor()
+        tgt_cursor = tgt_conn.cursor()
+
+        # Check if the table already exists in the target database
+        tgt_cursor.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{table_name}')")
+        table_exists = tgt_cursor.fetchone()[0]
+
+        if not table_exists:
+            src_cursor.execute(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}'")
+            columns = src_cursor.fetchall()
+
+            if columns:
+                column_defs = ", ".join([f"{col[0]} {col[1]}" for col in columns])
+                create_table_query = f"CREATE TABLE mimic_iv_filtered.{table_name} ({column_defs});"
+                tgt_cursor.execute(create_table_query)
+                tgt_conn.commit()
+                print(f"✅ Table '{table_name}' created in target database.")
+            else:
+                print(f"⚠️ No columns found for table '{table_name}', skipping.")
+        
+        src_cursor.close()
+        tgt_cursor.close()
+
+    except Exception as e:
+        print(f"❌ Error creating table '{table_name}': {e}")
 
 def transfer_data():
     """Transfers filtered data from source to target database."""
     try:
-        # Connect to both source and target databases
+        # Ensure the target database exists before connecting
+        create_database()
+
+        # Connect to source and target databases
         src_conn = psycopg2.connect(**SOURCE_DB)
         tgt_conn = psycopg2.connect(**TARGET_DB)
         print("🚀 Connected to databases!")
 
         for table, date_column in TABLES.items():
+            # Ensure table exists in the target database
+            create_table_if_not_exists(table, src_conn, tgt_conn)
+
+            # Extract filtered data
             query = SQL_TEMPLATE.format(table_name=table, date_column=date_column)
-            execute_query(query, src_conn)  # Execute query in source database
+            src_cursor = src_conn.cursor()
+            src_cursor.execute(query)
+            rows = src_cursor.fetchall()
+            columns = [desc[0] for desc in src_cursor.description]
+
+            if rows:
+                # Insert data into the target database
+                placeholders = ", ".join(["%s"] * len(columns))
+                insert_query = f"INSERT INTO mimic_iv_filtered.{table} ({', '.join(columns)}) VALUES ({placeholders})"
+
+                tgt_cursor = tgt_conn.cursor()
+                tgt_cursor.executemany(insert_query, rows)
+                tgt_conn.commit()
+
+                print(f"✅ {len(rows)} records inserted into '{table}'")
+
+                tgt_cursor.close()
+            else:
+                print(f"⚠️ No data found for table '{table}' in the given time range.")
+
+            src_cursor.close()
 
         print("✅ Data successfully transferred!")
     
     except Exception as e:
-        print(f"❌ Error connecting to databases: {e}")
+        print(f"❌ Error transferring data: {e}")
     
     finally:
         if src_conn:
@@ -380,4 +443,5 @@ def transfer_data():
 
 if __name__ == "__main__":
     transfer_data()
+
 ```
