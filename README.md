@@ -277,3 +277,107 @@ orderid, linkorderid,ordercategoryname, ordercategorydescription,patientweight,i
 
 
 ```
+
+```
+import psycopg2
+
+# Database connection parameters
+SOURCE_DB = {
+    "dbname": "source_database",
+    "user": "source_user",
+    "password": "source_password",
+    "host": "source_host",
+    "port": "5432"
+}
+
+TARGET_DB = {
+    "dbname": "target_database",
+    "user": "target_user",
+    "password": "target_password",
+    "host": "target_host",
+    "port": "5432"
+}
+
+# List of tables and their corresponding date columns
+TABLES = {
+    "omr": "chartdate",
+    "admissions": "admittime",
+    "diagnoses_icd": "admittime",
+    "drgcodes": "admittime",
+    "hpcsevents": "chartdate",
+    "labevents": "charttime",
+    "microbiologyevents": "chartdate",
+    "pharmacy": "starttime",
+    "poe": "ordertime",
+    "prescriptions": "starttime",
+    "procedures_icd": "chartdate",
+    "services": "transfertime",
+    "transfers": "intime",
+    "chartevents": "charttime",
+    "datetimeevents": "charttime",
+    "icustays": "intime",
+    "ingredientevents": "starttime",
+    "inputevents": "starttime",
+    "outputevents": "charttime",
+    "procedureevents": "starttime"
+}
+
+# SQL template for filtering and inserting data
+SQL_TEMPLATE = """
+WITH year_filter AS (
+    SELECT subject_id, anchor_year
+    FROM mimic_iv_subset.patients
+    WHERE anchor_year_group = '2011 - 2013'
+)
+CREATE TEMP TABLE temp_filtered_data AS
+SELECT {table_name}.*
+FROM mimic_iv_subset.{table_name}
+JOIN year_filter ON {table_name}.subject_id = year_filter.subject_id
+WHERE EXTRACT(YEAR FROM {table_name}.{date_column}) = year_filter.anchor_year;
+
+CREATE TABLE IF NOT EXISTS mimic_iv_filtered.{table_name} (LIKE mimic_iv_subset.{table_name} INCLUDING ALL);
+
+INSERT INTO mimic_iv_filtered.{table_name}
+SELECT * FROM temp_filtered_data;
+
+DROP TABLE temp_filtered_data;
+"""
+
+def execute_query(query, conn):
+    """Executes a given SQL query."""
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query)
+        conn.commit()
+        print(f"✅ Successfully processed table: {query.split()[8]}")
+    except Exception as e:
+        print(f"❌ Error processing table: {query.split()[8]} - {e}")
+        conn.rollback()
+
+def transfer_data():
+    """Transfers filtered data from source to target database."""
+    try:
+        # Connect to both source and target databases
+        src_conn = psycopg2.connect(**SOURCE_DB)
+        tgt_conn = psycopg2.connect(**TARGET_DB)
+        print("🚀 Connected to databases!")
+
+        for table, date_column in TABLES.items():
+            query = SQL_TEMPLATE.format(table_name=table, date_column=date_column)
+            execute_query(query, src_conn)  # Execute query in source database
+
+        print("✅ Data successfully transferred!")
+    
+    except Exception as e:
+        print(f"❌ Error connecting to databases: {e}")
+    
+    finally:
+        if src_conn:
+            src_conn.close()
+        if tgt_conn:
+            tgt_conn.close()
+        print("🔌 Disconnected from databases!")
+
+if __name__ == "__main__":
+    transfer_data()
+```
