@@ -901,3 +901,19 @@ if __name__ == "__main__":
 ```
 Before transferring data data to source database , you have to dump the empty data base and that dump file should be load to target data based then load the filters data 
 ```
+
+import subprocess
+
+# Database credentials
+db_user = "your_user"
+new_db_name = "new_database_name"
+dump_file = "schema_dump.sql"
+
+# Create the new database
+subprocess.run(["psql", "-U", db_user, "-d", "postgres", "-c", f"CREATE DATABASE {new_db_name};"], check=True)
+
+# Restore the schema
+subprocess.run(["psql", "-U", db_user, "-d", new_db_name, "-f", dump_file], check=True)
+
+print(f"Schema restored to {new_db_name}")
+
