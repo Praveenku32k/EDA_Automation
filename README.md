@@ -917,3 +917,44 @@ subprocess.run(["psql", "-U", db_user, "-d", new_db_name, "-f", dump_file], chec
 
 print(f"Schema restored to {new_db_name}")
 
+
+
+```
+import psycopg2
+
+# Database connection details
+DB_NAME = "your_database"
+DB_USER = "your_username"
+DB_PASS = "your_password"
+DB_HOST = "your_host"
+DB_PORT = "5432"
+
+# Connect to PostgreSQL
+conn = psycopg2.connect(
+    dbname=DB_NAME, user=DB_USER, password=DB_PASS, host=DB_HOST, port=DB_PORT
+)
+cursor = conn.cursor()
+
+# Get all table names
+cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
+tables = cursor.fetchall()
+
+with open("table_structure_dump.sql", "w") as dump_file:
+    for table in tables:
+        table_name = table[0]
+        dump_file.write(f"\n-- Table: {table_name}\n")
+
+        # Get column names
+        cursor.execute(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}';")
+        columns = cursor.fetchall()
+
+        column_definitions = ", ".join(f"{col[0]} {col[1]}" for col in columns)
+        dump_file.write(f"CREATE TABLE {table_name} ({column_definitions});\n")
+
+# Close connection
+cursor.close()
+conn.close()
+
+print("Table structure dump completed: table_structure_dump.sql")
+```
+
