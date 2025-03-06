@@ -897,3 +897,7 @@ if __name__ == "__main__":
     restore_dump_to_target()
     transfer_filtered_data()
 ```
+
+```
+Before transferring data data to source database , you have to dump the empty data base and that dump file should be load to target data based then load the filters data 
+```
